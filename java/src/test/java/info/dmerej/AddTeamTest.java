@@ -1,29 +1,34 @@
 package info.dmerej;
 
-import com.microsoft.playwright.Browser;
-import com.microsoft.playwright.BrowserType;
-import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.*;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AddTeamTest {
-    @Test
-    void test_add_team() {
+    private Playwright playwright;
+    private Browser browser;
+    private BrowserContext context;
+    private Page page;
+    @BeforeEach
+    public void setup(){
         // Use playwright driver to get a browser and open a new page
-        var playwright = Playwright.create();
+        playwright = Playwright.create();
         var launchOptions = new BrowserType.LaunchOptions().setHeadless(false)
-            .setSlowMo(1000); // Remove this when you're done debugging
-        var browser = playwright.chromium().launch(launchOptions);
+                .setSlowMo(1000); // Remove this when you're done debugging
+        browser = playwright.firefox().launch(launchOptions);
 
         // Set base URL for the new context
         var contextOptions = new Browser.NewContextOptions();
-        // TODO: fix the URL
-        contextOptions.setBaseURL("https://<letter>.<group>.hr.dmerej.info");
-        var context = browser.newContext(contextOptions);
+        contextOptions.setBaseURL("https://a.se1.hr.dmerej.info");
+        context = browser.newContext(contextOptions);
 
-        var page = context.newPage();
-
+        page = context.newPage();
+    }
+    @Test
+    void test_add_team() {
         // Reset database
         page.navigate("/reset_db");
         var proceedButton = page.locator("button:has-text('proceed')");
@@ -44,5 +49,19 @@ public class AddTeamTest {
         String selector = String.format("td:has-text('%s')", teamName);
         var isVisible = page.isVisible(selector);
         assertTrue(isVisible);
+    }
+    @Test
+    void test_add_team_empty_team() {
+        page.navigate("/add_team");
+        var nameInput = page.locator("input[name=\"name\"]");
+        var teamName = " ";
+        nameInput.fill(teamName);
+        page.click("text='Add'");
+
+        var result ="Server Error (500)";
+        String selector = String.format("h1:has-text('%s')", result);
+        boolean isErrorVisible = page.isVisible(selector);
+
+        assertFalse(isErrorVisible, "The error message 'Server Error (500)' should not be visible.");
     }
 }
